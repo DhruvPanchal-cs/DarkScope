@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dark Web Intelligence Platform — NFSU SEM8</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#020810;--surface:#08111e;--surface2:#0d1a2a;--border:#0e2035;
+  --accent:#00e5ff;--accent2:#39ff14;--danger:#ff1744;--warn:#ffd600;
+  --purple:#d500f9;--orange:#ff6d00;--text:#b0ccd8;--text2:#4a7a9a;
+  --card-h:1px solid #0e2035;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:
+  linear-gradient(rgba(0,229,255,.012) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,229,255,.012) 1px,transparent 1px);
+  background-size:36px 36px;pointer-events:none;z-index:0}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1500px;margin:0 auto;padding:10px 18px;position:relative;z-index:1}
+
+/* ── HEADER ── */
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 0 12px;border-bottom:var(--card-h);margin-bottom:14px}
+.logo{font-size:15px;font-weight:900;letter-spacing:3px;color:#fff}
+.logo em{font-style:normal;color:var(--accent);text-shadow:0 0 20px rgba(0,229,255,.4)}
+.logo small{font-size:8px;letter-spacing:2px;color:var(--text2);display:block;margin-top:2px}
+.hbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hbtn{font-size:8px;letter-spacing:2px;color:var(--accent);border:1px solid var(--accent);
+  padding:5px 10px;text-decoration:none;background:transparent;cursor:pointer;
+  font-family:'Courier New',monospace;transition:all .2s}
+.hbtn:hover,.hbtn.active{background:rgba(0,229,255,.1)}
+.hbtn.danger{color:var(--danger);border-color:var(--danger)}
+.hbtn.danger:hover{background:rgba(255,23,68,.1)}
+.live{font-size:8px;color:var(--text2);letter-spacing:2px;display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;background:var(--accent2);border-radius:50%;
+  box-shadow:0 0 8px var(--accent2);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* ── STAT CARDS ── */
+.stats{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;margin-bottom:12px}
+.stat{background:var(--surface);border:var(--card-h);padding:10px 8px;text-align:center;
+  cursor:default;transition:border-color .25s;grid-column:span 1}
+.stat:hover{border-color:var(--accent)}
+.stat-num{font-size:20px;font-weight:900;line-height:1;display:block}
+.stat-label{font-size:6px;letter-spacing:2px;color:var(--text2);margin-top:3px;display:block}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:var(--card-h);margin-bottom:12px;flex-wrap:wrap;gap:2px}
+.tab{padding:7px 11px;font-size:7px;letter-spacing:2px;color:var(--text2);cursor:pointer;
+  border:none;border-bottom:2px solid transparent;background:transparent;
+  font-family:'Courier New',monospace;transition:all .2s;margin-bottom:-1px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ── PANELS ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.panel{background:var(--surface);border:var(--card-h);padding:12px;margin-bottom:10px}
+.panel-full{background:var(--surface);border:var(--card-h);padding:12px;margin-bottom:10px}
+.ptitle{font-size:8px;letter-spacing:3px;color:var(--accent);margin-bottom:10px;
+  padding-bottom:6px;border-bottom:var(--card-h);display:flex;justify-content:space-between;align-items:center}
+.ptitle span{color:var(--text2);font-size:7px;letter-spacing:1px}
+.chart-wrap{position:relative;height:180px}
+.chart-wrap-lg{position:relative;height:260px}
+
+/* ── TABLES ── */
+.tbl-wrap{overflow-x:auto;max-height:400px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:6px 8px;font-size:6px;letter-spacing:2px;color:var(--text2);
+  border-bottom:var(--card-h);white-space:nowrap;position:sticky;top:0;background:var(--surface);z-index:1}
+td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.025);vertical-align:middle}
+tr:hover td{background:rgba(0,229,255,.02)}
+.url-cell{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:10px}
+.url-cell a{color:var(--text2);text-decoration:none}
+.url-cell a:hover{color:var(--accent)}
+
+/* ── TAGS ── */
+.tag{display:inline-block;font-size:7px;padding:1px 5px;margin:1px;border:1px solid;border-radius:0}
+.tr{color:var(--danger);border-color:rgba(255,23,68,.35);background:rgba(255,23,68,.06)}
+.tc{color:var(--accent);border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.05)}
+.tg{color:var(--accent2);border-color:rgba(57,255,20,.3);background:rgba(57,255,20,.05)}
+.ty{color:var(--warn);border-color:rgba(255,214,0,.3);background:rgba(255,214,0,.05)}
+.tp{color:var(--purple);border-color:rgba(213,0,249,.3);background:rgba(213,0,249,.05)}
+.to{color:var(--orange);border-color:rgba(255,109,0,.3);background:rgba(255,109,0,.05)}
+
+/* ── SCORE BARS ── */
+.score-bar-wrap{display:flex;align-items:center;gap:6px}
+.score-bar{height:6px;border-radius:3px;display:inline-block}
+.score-num{font-size:10px;font-weight:bold;min-width:30px}
+
+/* ── OPSEC CARDS ── */
+.opsec-card{background:var(--surface2);border-left:3px solid var(--border);
+  border:1px solid var(--border);padding:10px 12px;margin-bottom:6px;transition:border .2s}
+.opsec-card.critical{border-left-color:var(--danger)}
+.opsec-card.high{border-left-color:var(--orange)}
+.opsec-card.medium{border-left-color:var(--warn)}
+.opsec-card.low{border-left-color:var(--accent2)}
+.opsec-title{color:#e8f4f8;font-size:11px;font-weight:bold;margin-bottom:4px}
+.opsec-url{color:var(--text2);font-size:9px;margin-bottom:5px;word-break:break-all}
+.failure-list{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+
+/* ── FORUM POSTS ── */
+.fp{background:var(--surface2);border:1px solid var(--border);
+  border-left:3px solid var(--accent);padding:10px 12px;margin-bottom:6px}
+.fp:hover{border-left-color:var(--accent2)}
+.fp-meta{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.fp-board{font-size:6px;letter-spacing:2px;padding:2px 6px;border:1px solid var(--accent);color:var(--accent)}
+.fp-user{font-size:8px;color:var(--accent2)}
+.fp-time{font-size:8px;color:var(--text2);margin-left:auto}
+.fp-subj{color:#e8f4f8;font-size:11px;font-weight:bold;margin-bottom:3px}
+.fp-body{font-size:10px;color:var(--text2);line-height:1.5;max-height:60px;overflow:hidden}
+
+/* ── GALLERY ── */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.gcard{background:var(--surface2);border:1px solid var(--border);
+  overflow:hidden;cursor:pointer;transition:border-color .2s}
+.gcard:hover{border-color:var(--accent)}
+.gcard.flagged{border-color:rgba(255,23,68,.4)}
+.gimg{width:100%;height:140px;object-fit:cover;object-position:top;
+  display:block;background:var(--surface);border-bottom:var(--card-h)}
+.ginfo{padding:8px 10px}
+.gtitle{color:#e8f4f8;font-size:10px;font-weight:bold;margin-bottom:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gurl{color:var(--text2);font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── LIGHTBOX ── */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(2,8,16,.97);
+  z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+.lightbox.show{display:flex}
+.lightbox img{max-width:90vw;max-height:80vh;border:1px solid var(--accent)}
+.lb-title{color:var(--text);font-size:12px;text-align:center}
+.lb-close{position:fixed;top:16px;right:20px;font-size:24px;color:var(--accent);
+  cursor:pointer;background:none;border:none;font-family:'Courier New',monospace}
+
+/* ── D3 GRAPH ── */
+#graph-container{background:var(--surface2);border:var(--card-h);position:relative;
+  width:100%;height:520px;overflow:hidden}
+#graph-svg{width:100%;height:100%}
+.graph-tooltip{position:absolute;background:rgba(8,17,30,.95);border:1px solid var(--accent);
+  padding:8px 12px;font-size:10px;pointer-events:none;display:none;z-index:100;
+  max-width:220px;line-height:1.6}
+.graph-controls{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:10}
+.graph-btn{background:var(--surface);border:var(--card-h);color:var(--text);
+  padding:5px 8px;font-size:9px;cursor:pointer;font-family:'Courier New',monospace}
+.graph-btn:hover{border-color:var(--accent);color:var(--accent)}
+.graph-legend{position:absolute;bottom:10px;left:10px;display:flex;flex-wrap:wrap;gap:8px;z-index:10}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:8px;color:var(--text2)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+
+/* ── UPTIME ── */
+.uptime-bar-wrap{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.uptime-bar-bg{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+.uptime-bar-fill{height:100%;border-radius:4px;transition:width .5s}
+.uptime-label{font-size:9px;min-width:42px;text-align:right}
+.uptime-site{font-size:10px;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── IDENTITY ── */
+.id-card{background:var(--surface2);border:var(--card-h);border-left:3px solid var(--accent);
+  padding:10px 12px;margin-bottom:6px}
+.id-username{font-size:13px;font-weight:900;color:var(--accent);margin-bottom:4px}
+.id-platform{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+.id-plat-card{background:var(--surface);border:var(--card-h);padding:6px 10px;font-size:10px}
+.id-plat-name{color:var(--accent2);font-size:8px;letter-spacing:2px;margin-bottom:3px}
+
+/* ── SEARCH ── */
+.search-box{display:flex;gap:8px;margin-bottom:12px}
+.search-input{flex:1;background:var(--surface2);border:var(--card-h);color:var(--text);
+  padding:8px 12px;font-family:'Courier New',monospace;font-size:12px;outline:none}
+.search-input:focus{border-color:var(--accent)}
+.search-btn{background:transparent;border:1px solid var(--accent);color:var(--accent);
+  padding:8px 16px;cursor:pointer;font-family:'Courier New',monospace;font-size:10px;
+  letter-spacing:2px}
+.search-btn:hover{background:rgba(0,229,255,.1)}
+
+/* ── CLUSTER SCATTER ── */
+#cluster-svg{width:100%;height:300px}
+
+/* ── STIX EXPORT ── */
+.export-section{background:var(--surface2);border:var(--card-h);padding:16px;margin-bottom:10px}
+.export-title{font-size:8px;letter-spacing:3px;color:var(--accent);margin-bottom:12px}
+.export-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.export-btn{background:var(--surface);border:1px solid var(--accent2);color:var(--accent2);
+  padding:10px 8px;cursor:pointer;font-family:'Courier New',monospace;font-size:8px;
+  letter-spacing:1px;text-align:center;transition:all .2s}
+.export-btn:hover{background:rgba(57,255,20,.1)}
+.export-btn.all{border-color:var(--accent);color:var(--accent)}
+.export-btn.flagged{border-color:var(--danger);color:var(--danger)}
+
+/* ── MISC ── */
+.empty{color:var(--text2);font-size:11px;text-align:center;padding:30px}
+.loading{color:var(--text2);font-size:10px;letter-spacing:2px;padding:20px;text-align:center}
+.section-sep{border:none;border-top:var(--card-h);margin:12px 0}
+.cat-badge{display:inline-block;font-size:7px;padding:2px 6px;border:1px solid;margin:1px}
+.cat-hacking{color:var(--danger);border-color:rgba(255,23,68,.3)}
+.cat-drugs{color:var(--purple);border-color:rgba(213,0,249,.3)}
+.cat-fraud{color:var(--orange);border-color:rgba(255,109,0,.3)}
+.cat-crypto{color:var(--warn);border-color:rgba(255,214,0,.3)}
+.cat-privacy{color:var(--accent);border-color:rgba(0,229,255,.3)}
+.cat-news{color:var(--accent2);border-color:rgba(57,255,20,.3)}
+.cat-forum{color:#ff4081;border-color:rgba(255,64,129,.3)}
+.cat-other{color:var(--text2);border-color:var(--border)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <em>DARK WEB</em> INTELLIGENCE PLATFORM
+    <small>NFSU SEM8 | CYBER SECURITY RESEARCH | Guide: Mr. Nilesh Panchal</small>
+  </div>
+  <div class="hbtns">
+    <span class="live"><span class="dot"></span>LIVE</span>
+    <button class="hbtn" onclick="runAllRefresh()">↻ REFRESH</button>
+    <button class="hbtn danger" onclick="exportSTIX('all')">⬇ STIX EXPORT</button>
+  </div>
+</header>
+
+<!-- STAT CARDS -->
+<div class="stats" id="stat-cards">
+  <div class="stat" style="grid-column:span 2"><span class="stat-num" id="s-total" style="color:var(--accent)">—</span><span class="stat-label">PAGES CRAWLED</span></div>
+  <div class="stat" style="grid-column:span 2"><span class="stat-num" id="s-flagged" style="color:var(--danger)">—</span><span class="stat-label">THREATS</span></div>
+  <div class="stat" style="grid-column:span 2"><span class="stat-num" id="s-forums" style="color:var(--purple)">—</span><span class="stat-label">FORUM POSTS</span></div>
+  <div class="stat" style="grid-column:span 2"><span class="stat-num" id="s-entities" style="color:var(--warn)">—</span><span class="stat-label">WITH ENTITIES</span></div>
+  <div class="stat" style="grid-column:span 2"><span class="stat-num" id="s-clusters" style="color:var(--accent2)">—</span><span class="stat-label">CLUSTERS</span></div>
+  <div class="stat" style="grid-column:span 2"><span class="stat-num" id="s-uptime" style="color:var(--orange)">—</span><span class="stat-label">UPTIME CHECKED</span></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('overview',this)">01 OVERVIEW</button>
+  <button class="tab" onclick="showTab('opsec',this)">02 OPSEC</button>
+  <button class="tab" onclick="showTab('headers',this)">03 HEADERS</button>
+  <button class="tab" onclick="showTab('dns',this)">04 DNS LEAKS</button>
+  <button class="tab" onclick="showTab('identity',this)">05 IDENTITY</button>
+  <button class="tab" onclick="showTab('topics',this)">06 TOPICS</button>
+  <button class="tab" onclick="showTab('graph',this)">07 LINK GRAPH</button>
+  <button class="tab" onclick="showTab('gallery',this)">08 GALLERY</button>
+  <button class="tab" onclick="showTab('forums',this)">09 FORUMS</button>
+  <button class="tab" onclick="showTab('entities',this)">10 ENTITIES</button>
+  <button class="tab" onclick="showTab('search',this)">11 SEARCH</button>
+</div>
+
+<!-- ═══════════ TAB 1: OVERVIEW ═══════════ -->
+<div class="tab-content active" id="tab-overview">
+  <div class="grid3">
+    <div class="panel"><div class="ptitle">CATEGORY DISTRIBUTION</div><div class="chart-wrap"><canvas id="chart-cat"></canvas></div></div>
+    <div class="panel"><div class="ptitle">TOP KEYWORDS</div><div class="chart-wrap"><canvas id="chart-kw"></canvas></div></div>
+    <div class="panel"><div class="ptitle">LANGUAGE BREAKDOWN</div><div class="chart-wrap"><canvas id="chart-lang"></canvas></div></div>
+  </div>
+  <div class="panel-full">
+    <div class="ptitle">RECENT CRAWLS <span id="recent-count"></span></div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>#</th><th>TITLE</th><th>URL</th><th>CAT</th><th>OPSEC</th><th>LANG</th><th>STATUS</th><th>TIME</th>
+      </tr></thead><tbody id="recent-tbody"></tbody></table>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="ptitle">TOP PAGERANK SITES <span>Dark Web Hubs</span></div>
+      <div id="pagerank-list"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">THREAT SUMMARY</div>
+      <div id="threat-summary"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 2: OPSEC ═══════════ -->
+<div class="tab-content" id="tab-opsec">
+  <div class="grid4">
+    <div class="panel"><div class="ptitle">RISK LEVELS</div><div class="chart-wrap"><canvas id="chart-opsec-dist"></canvas></div></div>
+    <div class="panel"><div class="ptitle">FAILURE TYPES</div><div class="chart-wrap"><canvas id="chart-opsec-fail"></canvas></div></div>
+    <div class="panel"><div class="ptitle">STATS<span id="opsec-summary-text"></span></div><div id="opsec-mini-stats" style="margin-top:8px"></div></div>
+    <div class="panel"><div class="ptitle">SCORE DISTRIBUTION</div><div class="chart-wrap"><canvas id="chart-opsec-score"></canvas></div></div>
+  </div>
+  <div class="panel-full">
+    <div class="ptitle">OPSEC FAILURES BY SITE <span>sorted: worst first</span></div>
+    <div id="opsec-cards"></div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 3: HEADERS ═══════════ -->
+<div class="tab-content" id="tab-headers">
+  <div class="grid3">
+    <div class="panel"><div class="ptitle">SERVER SOFTWARE</div><div class="chart-wrap"><canvas id="chart-server"></canvas></div></div>
+    <div class="panel"><div class="ptitle">SECURITY SCORE DIST.</div><div class="chart-wrap"><canvas id="chart-secscore"></canvas></div></div>
+    <div class="panel"><div class="ptitle">ETAG CORRELATIONS <span>Same physical server</span></div><div id="etag-info" style="margin-top:8px"></div></div>
+  </div>
+  <div class="panel-full">
+    <div class="ptitle">HTTP HEADER FINGERPRINTS</div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>TITLE</th><th>SERVER</th><th>CMS</th><th>CDN</th><th>ETAG</th><th>TZ LEAK</th><th>SEC SCORE</th><th>TRACKING</th>
+      </tr></thead><tbody id="headers-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 4: DNS LEAKS ═══════════ -->
+<div class="tab-content" id="tab-dns">
+  <div class="grid3">
+    <div class="panel"><div class="ptitle">SEVERITY DISTRIBUTION</div><div class="chart-wrap"><canvas id="chart-dns-sev"></canvas></div></div>
+    <div class="panel"><div class="ptitle">TOP LEAKED DOMAINS</div><div class="chart-wrap"><canvas id="chart-dns-domains"></canvas></div></div>
+    <div class="panel"><div class="ptitle">RESOURCE TYPES LEAKED</div><div class="chart-wrap"><canvas id="chart-dns-types"></canvas></div></div>
+  </div>
+  <div class="panel-full">
+    <div class="ptitle">DNS LEAKAGE BY SITE <span>clearnet resource loading detected</span></div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>TITLE</th><th>SEVERITY</th><th>SCORE</th><th>JS</th><th>CSS</th><th>IFRAMES</th><th>FORMS</th><th>DOMAINS EXPOSED</th>
+      </tr></thead><tbody id="dns-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 5: IDENTITY ═══════════ -->
+<div class="tab-content" id="tab-identity">
+  <div class="grid2">
+    <div class="panel">
+      <div class="ptitle">CORRELATION STATS</div>
+      <div id="identity-stats" style="margin-top:8px"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">PLATFORM BREAKDOWN</div>
+      <div class="chart-wrap"><canvas id="chart-identity"></canvas></div>
+    </div>
+  </div>
+  <div class="panel-full">
+    <div class="ptitle">IDENTITY CORRELATIONS <span>Dark web → GitHub / Reddit</span></div>
+    <div id="identity-cards"></div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 6: TOPICS ═══════════ -->
+<div class="tab-content" id="tab-topics">
+  <div class="grid2">
+    <div class="panel"><div class="ptitle">CATEGORY CONFIDENCE</div><div class="chart-wrap-lg"><canvas id="chart-confidence"></canvas></div></div>
+    <div class="panel">
+      <div class="ptitle">CONTENT CLUSTERS <span>Cosine similarity ≥ 0.85</span></div>
+      <div id="cluster-list" style="max-height:260px;overflow-y:auto"></div>
+    </div>
+  </div>
+  <div class="panel-full">
+    <div class="ptitle">MIRROR / DUPLICATE SITES DETECTED</div>
+    <div id="mirror-list"></div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 7: LINK GRAPH ═══════════ -->
+<div class="tab-content" id="tab-graph">
+  <div class="panel-full" style="padding:10px">
+    <div class="ptitle">DARK WEB LINK GRAPH — D3.js Force Layout <span>Node size = PageRank score</span></div>
+    <div id="graph-container">
+      <svg id="graph-svg"></svg>
+      <div class="graph-tooltip" id="graph-tooltip"></div>
+      <div class="graph-controls">
+        <button class="graph-btn" onclick="graphZoomIn()">＋</button>
+        <button class="graph-btn" onclick="graphZoomOut()">－</button>
+        <button class="graph-btn" onclick="graphReset()">⌂</button>
+      </div>
+      <div class="graph-legend" id="graph-legend"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="ptitle">TOP PAGERANK NODES</div>
+      <div id="pr-table"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">GRAPH STATISTICS</div>
+      <div id="graph-stats"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 8: GALLERY ═══════════ -->
+<div class="tab-content" id="tab-gallery">
+  <div class="hbtns" style="margin-bottom:12px;flex-wrap:wrap" id="gallery-filters"></div>
+  <div class="gallery" id="gallery-grid"></div>
+  <div class="empty" id="gallery-empty" style="display:none">No screenshots yet. Run screenshot_engine.py to capture pages.</div>
+</div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <img id="lb-img" src="" alt="">
+  <div class="lb-title" id="lb-title"></div>
+</div>
+
+<!-- ═══════════ TAB 9: FORUMS ═══════════ -->
+<div class="tab-content" id="tab-forums">
+  <div class="grid3">
+    <div class="panel"><div class="ptitle">BOARD BREAKDOWN</div><div class="chart-wrap"><canvas id="chart-forum-boards"></canvas></div></div>
+    <div class="panel"><div class="ptitle">USER STATS</div><div id="forum-user-stats" style="margin-top:8px"></div></div>
+    <div class="panel">
+      <div class="ptitle">FILTER BY BOARD</div>
+      <div id="board-filters" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+  </div>
+  <div class="panel-full">
+    <div class="ptitle">FORUM POSTS <span id="forum-count"></span></div>
+    <div id="forum-posts"></div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 10: ENTITIES ═══════════ -->
+<div class="tab-content" id="tab-entities">
+  <div class="grid3">
+    <div class="panel"><div class="ptitle">EMAILS FOUND</div><div id="email-stats" style="margin-top:8px"></div></div>
+    <div class="panel"><div class="ptitle">BITCOIN ADDRESSES + RISK</div><div id="btc-stats" style="margin-top:8px"></div></div>
+    <div class="panel"><div class="ptitle">ENTITY TYPES</div><div class="chart-wrap"><canvas id="chart-entities"></canvas></div></div>
+  </div>
+  <div class="panel-full">
+    <div class="ptitle">ENTITY EXTRACTION RESULTS</div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>TITLE</th><th>LANG</th><th>EMAILS</th><th>BTC</th><th>BTC RISK</th><th>MONERO</th><th>PGP</th><th>ORGS</th><th>PERSONS</th>
+      </tr></thead><tbody id="entities-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 11: SEARCH ═══════════ -->
+<div class="tab-content" id="tab-search">
+  <div class="search-box">
+    <input type="text" class="search-input" id="search-input" placeholder="Search crawled pages... (try: ransomware, carding, bitcoin, pgp)">
+    <button class="search-btn" onclick="doSearch()">SEARCH</button>
+  </div>
+  <div class="grid3">
+    <div class="panel col-span-2" style="grid-column:span 2">
+      <div class="ptitle">SEARCH RESULTS <span id="search-count"></span></div>
+      <div id="search-results"></div>
+    </div>
+    <div class="panel">
+      <div class="export-section" style="background:var(--surface);padding:0;border:none">
+        <div class="ptitle">STIX 2.1 EXPORT</div>
+        <p style="font-size:9px;color:var(--text2);margin-bottom:10px;line-height:1.6">
+          Export all IoCs as STIX 2.1 bundle. Compatible with Splunk, OpenCTI, MISP, IBM QRadar, Microsoft Sentinel.
+        </p>
+        <div class="export-grid">
+          <button class="export-btn all" onclick="exportSTIX('all')">⬇ ALL IoCs</button>
+          <button class="export-btn flagged" onclick="exportSTIX('flagged')">⬇ THREATS ONLY</button>
+          <button class="export-btn" onclick="exportSTIX('hacking')">⬇ HACKING</button>
+          <button class="export-btn" onclick="exportSTIX('drugs')">⬇ DRUGS</button>
+          <button class="export-btn" onclick="exportSTIX('fraud')">⬇ FRAUD</button>
+          <button class="export-btn" onclick="exportSTIX('crypto')">⬇ CRYPTO</button>
+        </div>
+      </div>
+      <hr class="section-sep">
+      <div class="ptitle">QUICK STATS</div>
+      <div id="quick-stats" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// GLOBAL STATE
+// ═══════════════════════════════════════════════════════
+const API = '';
+let charts = {};
+let graphSim = null;
+let graphZoom = null;
+let currentForumBoard = null;
+
+const CAT_COLORS = {
+  hacking:'#ff1744', drugs:'#d500f9', fraud:'#ff6d00', crypto:'#ffd600',
+  privacy:'#00e5ff', news:'#69ff47', search_index:'#2979ff', forum:'#ff4081', other:'#607d8b'
+};
+const SEV_COLORS = {CRITICAL:'#ff1744',HIGH:'#ff6d00',MEDIUM:'#ffd600',LOW:'#00e5ff',NONE:'#4a7a9a'};
+
+// ═══════════════════════════════════════════════════════
+// TAB SYSTEM
+// ═══════════════════════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  // Lazy load tab data
+  const loaders = {
+    opsec:    loadOpsec,
+    headers:  loadHeaders,
+    dns:      loadDNS,
+    identity: loadIdentity,
+    topics:   loadTopics,
+    graph:    loadGraph,
+    gallery:  loadGallery,
+    forums:   loadForums,
+    entities: loadEntities,
+  };
+  if (loaders[name]) loaders[name]();
+}
+
+// ═══════════════════════════════════════════════════════
+// CHART HELPERS
+// ═══════════════════════════════════════════════════════
+const CHART_DEFAULTS = {
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'#0d1a2a',borderColor:'#0e2035',borderWidth:1,titleColor:'#00e5ff',bodyColor:'#b0ccd8',titleFont:{family:'Courier New',size:10},bodyFont:{family:'Courier New',size:10}}},
+  scales:{x:{ticks:{color:'#4a7a9a',font:{family:'Courier New',size:9}},grid:{color:'rgba(14,32,53,.5)'}},
+          y:{ticks:{color:'#4a7a9a',font:{family:'Courier New',size:9}},grid:{color:'rgba(14,32,53,.5)'}}}
+};
+
+function makeChart(id, type, data, opts={}) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type,
+    data,
+    options: deepMerge(JSON.parse(JSON.stringify(CHART_DEFAULTS)), opts)
+  });
+  return charts[id];
+}
+
+function deepMerge(target, source) {
+  for (const key in source) {
+    if (source[key] && typeof source[key]==='object' && !Array.isArray(source[key])) {
+      target[key] = target[key] || {};
+      deepMerge(target[key], source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
+
+function catColor(cat) { return CAT_COLORS[cat] || '#607d8b'; }
+
+function catBadge(cat) {
+  return `<span class="cat-badge cat-${cat||'other'}">${cat||'?'}</span>`;
+}
+
+function severityBadge(sev) {
+  const cls = {CRITICAL:'tr',HIGH:'to',MEDIUM:'ty',LOW:'tc',NONE:'tg'}[sev] || 'tc';
+  return `<span class="tag ${cls}">${sev||'?'}</span>`;
+}
+
+function opsecBar(score) {
+  if (score == null) return '<span style="color:var(--text2)">N/A</span>';
+  const pct = score;
+  const color = score >= 80 ? '#39ff14' : score >= 60 ? '#ffd600' : score >= 40 ? '#ff6d00' : '#ff1744';
+  return `<div class="score-bar-wrap">
+    <div class="score-bar" style="width:${pct}px;max-width:60px;background:${color}"></div>
+    <span class="score-num" style="color:${color}">${score}</span>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// API FETCH HELPER
+// ═══════════════════════════════════════════════════════
+async function api(endpoint) {
+  try {
+    const r = await fetch(API + endpoint);
+    return await r.json();
+  } catch(e) {
+    console.error(endpoint, e);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 1: OVERVIEW
+// ═══════════════════════════════════════════════════════
+async function loadOverview() {
+  const data = await api('/api/stats');
+  if (!data) return;
+
+  // Stat cards
+  document.getElementById('s-total').textContent = data.total || 0;
+  document.getElementById('s-flagged').textContent = data.flagged || 0;
+  document.getElementById('s-forums').textContent = data.forum_posts || 0;
+  document.getElementById('s-entities').textContent = data.with_entities || 0;
+  document.getElementById('s-clusters').textContent = data.clusters || 0;
+  document.getElementById('s-uptime').textContent = data.uptime_checked || 0;
+
+  // Category pie chart
+  if (data.categories && data.categories.length) {
+    makeChart('chart-cat', 'doughnut', {
+      labels: data.categories.map(c => c._id),
+      datasets: [{
+        data: data.categories.map(c => c.count),
+        backgroundColor: data.categories.map(c => catColor(c._id) + 'cc'),
+        borderColor: data.categories.map(c => catColor(c._id)),
+        borderWidth: 1,
+      }]
+    }, {plugins:{legend:{display:true,position:'right',labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+  }
+
+  // Keyword bar
+  if (data.keywords && data.keywords.length) {
+    makeChart('chart-kw', 'bar', {
+      labels: data.keywords.map(k => k._id),
+      datasets: [{
+        data: data.keywords.map(k => k.count),
+        backgroundColor: 'rgba(0,229,255,.3)',
+        borderColor: 'rgba(0,229,255,.8)',
+        borderWidth: 1,
+      }]
+    }, {indexAxis:'y'});
+  }
+
+  // Language chart
+  if (data.languages && data.languages.length) {
+    makeChart('chart-lang', 'bar', {
+      labels: data.languages.map(l => l._id || 'unknown'),
+      datasets: [{
+        data: data.languages.map(l => l.count),
+        backgroundColor: 'rgba(57,255,20,.3)',
+        borderColor: 'rgba(57,255,20,.7)',
+        borderWidth: 1,
+      }]
+    });
+  }
+
+  // Recent table
+  document.getElementById('recent-count').textContent = `(${(data.recent||[]).length} latest)`;
+  const tbody = document.getElementById('recent-tbody');
+  tbody.innerHTML = (data.recent||[]).map((p,i) => `
+    <tr>
+      <td style="color:var(--text2)">${i+1}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title||'No Title'}</td>
+      <td class="url-cell"><a href="${p.url}" target="_blank">${(p.url||'').substring(0,50)}</a></td>
+      <td>${catBadge(p.category)}</td>
+      <td>${p.opsec_score!=null?opsecBar(p.opsec_score):'<span style="color:var(--text2)">—</span>'}</td>
+      <td><span class="tag tc">${p.language||'?'}</span></td>
+      <td>${p.is_flagged?'<span class="tag tr">THREAT</span>':'<span class="tag tg">CLEAN</span>'}</td>
+      <td style="color:var(--text2);white-space:nowrap">${p.crawled_at||''}</td>
+    </tr>`).join('');
+
+  // PageRank list
+  const prList = document.getElementById('pagerank-list');
+  if (data.top_pagerank && data.top_pagerank.length) {
+    prList.innerHTML = data.top_pagerank.map((p,i) => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--accent);font-size:11px;min-width:20px">#${i+1}</span>
+        <div style="flex:1;overflow:hidden">
+          <div style="color:#e8f4f8;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title||'No Title'}</div>
+          <div style="color:var(--text2);font-size:8px">${(p.url||'').substring(0,55)}</div>
+        </div>
+        ${catBadge(p.category)}
+        <span style="color:var(--warn);font-size:9px">${(p.pagerank_score||0).toFixed(5)}</span>
+      </div>`).join('');
+  } else {
+    prList.innerHTML = '<p class="empty">Run link_graph.py to compute PageRank</p>';
+  }
+
+  // Threat summary
+  document.getElementById('threat-summary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      ${[
+        ['Total Pages', data.total, '#b0ccd8'],
+        ['Threats', data.flagged, '#ff1744'],
+        ['Clean', data.clean, '#39ff14'],
+        ['With Entities', data.with_entities, '#ffd600'],
+        ['With Credentials', data.with_credentials, '#ff6d00'],
+        ['Forum Posts', data.forum_posts, '#d500f9'],
+        ['Screenshots', data.screenshots, '#00e5ff'],
+        ['Mirror Sites', data.mirror_sites||0, '#ff4081'],
+      ].map(([l,v,c]) => `
+        <div style="background:var(--surface2);border:var(--card-h);padding:8px">
+          <span style="color:${c};font-size:18px;font-weight:900;display:block">${v||0}</span>
+          <span style="font-size:7px;letter-spacing:1px;color:var(--text2)">${l}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 2: OPSEC
+// ═══════════════════════════════════════════════════════
+async function loadOpsec() {
+  const [pages, stats] = await Promise.all([api('/api/opsec'), api('/api/opsec_stats')]);
+  if (!pages || !stats) return;
+
+  // Distribution donut
+  if (stats.distribution && stats.distribution.length) {
+    makeChart('chart-opsec-dist', 'doughnut', {
+      labels: stats.distribution.map(d => d._id),
+      datasets: [{
+        data: stats.distribution.map(d => d.count),
+        backgroundColor: stats.distribution.map(d => (SEV_COLORS[d._id]||'#607d8b') + 'cc'),
+        borderColor: stats.distribution.map(d => SEV_COLORS[d._id]||'#607d8b'),
+        borderWidth: 1,
+      }]
+    }, {plugins:{legend:{display:true,position:'right',labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+  }
+
+  // Failure types bar
+  const failTypes = ['ip_exposed','clearnet_links','cdn_resources','real_emails','tracking','cms_detected','timezone_leak','pgp_on_keyserver'];
+  const failCounts = await Promise.all(failTypes.map(async f => {
+    const r = await api(`/api/opsec_stats`);
+    return 0; // placeholder — actual counts from stats endpoint
+  }));
+  // Mini stats
+  document.getElementById('opsec-mini-stats').innerHTML = `
+    <div style="font-size:10px;line-height:2">
+      <div>Analyzed: <span style="color:var(--accent)">${stats.total_analyzed||0}</span></div>
+      <div>Critical: <span style="color:var(--danger)">${stats.critical_count||0}</span></div>
+      <div>IP Leaked: <span style="color:var(--danger)">${stats.ip_leaked_count||0}</span></div>
+      <div>With Tracking: <span style="color:var(--orange)">${stats.tracking_count||0}</span></div>
+      <div>Using CDN: <span style="color:var(--warn)">${stats.cdn_count||0}</span></div>
+    </div>`;
+
+  // Score histogram
+  const scoreRanges = [
+    {label:'0-20',count:pages.filter(p=>p.opsec_score<=20).length},
+    {label:'21-40',count:pages.filter(p=>p.opsec_score>20&&p.opsec_score<=40).length},
+    {label:'41-60',count:pages.filter(p=>p.opsec_score>40&&p.opsec_score<=60).length},
+    {label:'61-80',count:pages.filter(p=>p.opsec_score>60&&p.opsec_score<=80).length},
+    {label:'81-100',count:pages.filter(p=>p.opsec_score>80).length},
+  ];
+  makeChart('chart-opsec-score','bar',{
+    labels: scoreRanges.map(r=>r.label),
+    datasets:[{data:scoreRanges.map(r=>r.count),backgroundColor:['#ff1744cc','#ff6d00cc','#ffd600cc','#00e5ffcc','#39ff14cc'],borderWidth:0}]
+  });
+
+  // Failure bar chart
+  const failLabels = ['IP Exposed','Clearnet Links','CDN','Real Emails','Tracking','CMS','Timezone','PGP Keys'];
+  const failData   = failLabels.map((_,i) => {
+    const keys = ['ip_exposed','clearnet_links','cdn_resources','real_emails','tracking','cms_detected','timezone_leak','pgp_on_keyserver'];
+    return pages.filter(p => {
+      const f = p.opsec_failures||{};
+      const v = f[keys[i]];
+      return Array.isArray(v)?v.length>0:!!v;
+    }).length;
+  });
+  makeChart('chart-opsec-fail','bar',{
+    labels: failLabels,
+    datasets:[{data:failData,backgroundColor:'rgba(255,23,68,.35)',borderColor:'rgba(255,23,68,.8)',borderWidth:1}]
+  },{indexAxis:'y'});
+
+  // OPSEC cards
+  document.getElementById('opsec-cards').innerHTML = pages.map(p => {
+    const level = (p.opsec_level||'').toLowerCase();
+    const f = p.opsec_failures || {};
+    const failures = [];
+    if ((f.ip_exposed||[]).length)        failures.push(`<span class="tag tr">🚨 IP: ${(f.ip_exposed||[]).slice(0,1)}</span>`);
+    if ((f.tracking||[]).length)          failures.push(`<span class="tag tr">📊 ${(f.tracking||[]).join(',')}</span>`);
+    if ((f.cdn_resources||[]).length)     failures.push(`<span class="tag ty">☁ CDN: ${(f.cdn_resources||[]).slice(0,2).join(',')}</span>`);
+    if ((f.real_emails||[]).length)       failures.push(`<span class="tag ty">📧 ${(f.real_emails||[]).slice(0,1)}</span>`);
+    if ((f.clearnet_links||[]).length)    failures.push(`<span class="tag ty">🔗 ${(f.clearnet_links||[]).length} clearnet links</span>`);
+    if ((f.cms_detected||[]).length)      failures.push(`<span class="tag tc">📦 ${(f.cms_detected||[]).join(',')}</span>`);
+    if ((f.pgp_on_keyserver||[]).length)  failures.push(`<span class="tag tp">🔑 PGP on keyserver</span>`);
+    return `<div class="opsec-card ${level}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="opsec-title">${p.title||'No Title'}</div>
+        <div style="display:flex;align-items:center;gap:8px">${catBadge(p.category)}${opsecBar(p.opsec_score)}</div>
+      </div>
+      <div class="opsec-url">${p.url||''}</div>
+      <div class="failure-list">${failures.join('')}</div>
+    </div>`;
+  }).join('') || '<div class="empty">Run opsec_detector.py first</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 3: HEADERS
+// ═══════════════════════════════════════════════════════
+async function loadHeaders() {
+  const [headers, hstats] = await Promise.all([api('/api/headers'), api('/api/header_stats')]);
+  if (!headers) return;
+
+  // Server distribution
+  if (hstats && hstats.servers && hstats.servers.length) {
+    makeChart('chart-server','doughnut',{
+      labels: hstats.servers.map(s => (s._id||'Unknown').substring(0,20)),
+      datasets:[{
+        data: hstats.servers.map(s=>s.count),
+        backgroundColor: ['#00e5ffcc','#39ff14cc','#ffd600cc','#ff6d00cc','#d500f9cc','#ff1744cc','#4a7a9acc','#0e2035'],
+        borderWidth:1,
+      }]
+    },{plugins:{legend:{display:true,position:'right',labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+  }
+
+  // Security score distribution
+  const secScores = [0,1,2,3,4,5,6,7].map(score => ({
+    label: `${score}/7`,
+    count: headers.filter(h => h.security_score === score).length
+  }));
+  makeChart('chart-secscore','bar',{
+    labels: secScores.map(s=>s.label),
+    datasets:[{data:secScores.map(s=>s.count),backgroundColor:'rgba(0,229,255,.3)',borderColor:'rgba(0,229,255,.8)',borderWidth:1}]
+  });
+
+  // ETag correlations info
+  const etagDiv = document.getElementById('etag-info');
+  if (hstats && hstats.etag_correlations > 0) {
+    etagDiv.innerHTML = `
+      <div style="color:var(--danger);font-size:11px;margin-bottom:8px">
+        🚨 ${hstats.etag_correlations} correlation group(s) found
+      </div>
+      ${(hstats.etag_details||[]).map(e => `
+        <div style="background:var(--surface2);border:var(--card-h);padding:8px;margin-bottom:5px;font-size:10px">
+          <div style="color:var(--danger)">ETag: ${(e._id||'').substring(0,12)}...</div>
+          <div style="color:var(--text2)">${e.count} sites share this server</div>
+          ${(e.sites||[]).slice(0,3).map(s=>`<div style="color:var(--text);margin-top:2px">• ${s||'No Title'}</div>`).join('')}
+        </div>`).join('')}`;
+  } else {
+    etagDiv.innerHTML = `<div style="color:var(--accent2);font-size:11px">✓ No ETag correlations detected</div>
+      <div style="color:var(--text2);font-size:9px;margin-top:6px">Total sites with ETags: ${headers.filter(h=>h.etag).length}</div>`;
+  }
+
+  // Headers table
+  document.getElementById('headers-tbody').innerHTML = headers.map(h => `
+    <tr>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.title||'No Title'}</td>
+      <td style="color:var(--accent);font-size:10px">${h.server?h.server.substring(0,20):'<span style="color:var(--text2)">—</span>'}</td>
+      <td>${h.cms?`<span class="tag tc">${h.cms}</span>`:'—'}</td>
+      <td>${h.cdn?`<span class="tag ty">${h.cdn}</span>`:'—'}</td>
+      <td style="color:var(--text2);font-size:9px">${h.etag?h.etag.substring(0,8)+'...':'—'}</td>
+      <td>${h.timezone?`<span class="tag ty">${h.timezone}</span>`:'<span style="color:var(--text2)">—</span>'}</td>
+      <td>
+        <div style="display:flex;gap:2px;align-items:center">
+          <div style="width:${(h.security_score||0)*8}px;height:5px;background:${h.security_score>=5?'#39ff14':h.security_score>=3?'#ffd600':'#ff6d00'}"></div>
+          <span style="font-size:9px;color:var(--text2)">${h.security_score||0}/7</span>
+        </div>
+      </td>
+      <td>${(h.tracking_cookies||[]).length?`<span class="tag tr">${(h.tracking_cookies||[]).join(',')}</span>`:'—'}</td>
+    </tr>`).join('') || '<tr><td colspan="8" class="empty">Run header_fingerprint.py first</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 4: DNS LEAKS
+// ═══════════════════════════════════════════════════════
+async function loadDNS() {
+  const [leaks, dstats] = await Promise.all([api('/api/dns_leakage'), api('/api/dns_stats')]);
+  if (!dstats) return;
+
+  // Severity distribution
+  if (dstats.distribution && dstats.distribution.length) {
+    makeChart('chart-dns-sev','doughnut',{
+      labels: dstats.distribution.map(d=>d._id),
+      datasets:[{
+        data: dstats.distribution.map(d=>d.count),
+        backgroundColor: dstats.distribution.map(d=>(SEV_COLORS[d._id]||'#607d8b')+'cc'),
+        borderColor: dstats.distribution.map(d=>SEV_COLORS[d._id]||'#607d8b'),
+        borderWidth:1,
+      }]
+    },{plugins:{legend:{display:true,position:'right',labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+  }
+
+  // Top leaked domains
+  if (dstats.top_domains && dstats.top_domains.length) {
+    makeChart('chart-dns-domains','bar',{
+      labels: dstats.top_domains.map(d=>(d._id||'?').substring(0,25)),
+      datasets:[{data:dstats.top_domains.map(d=>d.count),backgroundColor:'rgba(255,109,0,.35)',borderColor:'rgba(255,109,0,.8)',borderWidth:1}]
+    },{indexAxis:'y'});
+  }
+
+  // Resource types chart
+  if (leaks && leaks.length) {
+    const totals = {
+      JS:     leaks.reduce((s,l)=>s+(l.scripts||0),0),
+      CSS:    leaks.reduce((s,l)=>s+(l.stylesheets||0),0),
+      Images: leaks.reduce((s,l)=>s+(l.images||0),0),
+      Iframes:leaks.reduce((s,l)=>s+(l.iframes||0),0),
+      Forms:  leaks.reduce((s,l)=>s+(l.forms||0),0),
+    };
+    makeChart('chart-dns-types','doughnut',{
+      labels: Object.keys(totals),
+      datasets:[{
+        data: Object.values(totals),
+        backgroundColor:['#ff1744cc','#ffd600cc','#00e5ffcc','#d500f9cc','#ff6d00cc'],
+        borderWidth:1,
+      }]
+    },{plugins:{legend:{display:true,position:'right',labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+  }
+
+  // DNS table
+  document.getElementById('dns-tbody').innerHTML = (leaks||[]).map(l => `
+    <tr>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.title||'No Title'}</td>
+      <td>${severityBadge(l.severity)}</td>
+      <td style="color:${l.score>15?'#ff1744':l.score>8?'#ff6d00':l.score>3?'#ffd600':'#00e5ff'};font-weight:bold">${l.score}</td>
+      <td style="color:${l.scripts>0?'#ff1744':'var(--text2)'}">${l.scripts||0}</td>
+      <td style="color:${l.stylesheets>0?'#ffd600':'var(--text2)'}">${l.stylesheets||0}</td>
+      <td style="color:${l.iframes>0?'#ff1744':'var(--text2)'}">${l.iframes||0}</td>
+      <td style="color:${l.forms>0?'#ff6d00':'var(--text2)'}">${l.forms||0}</td>
+      <td style="font-size:9px;max-width:180px">
+        ${(l.domains||[]).slice(0,3).map(d=>{
+          const ann = (l.annotations||{})[d];
+          return `<span class="tag ty" title="${d}">${ann||d.substring(0,20)}</span>`;
+        }).join('')}
+      </td>
+    </tr>`).join('') || '<tr><td colspan="8" class="empty">Run dns_analyzer.py first</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 5: IDENTITY
+// ═══════════════════════════════════════════════════════
+async function loadIdentity() {
+  const data = await api('/api/identities');
+  if (!data) return;
+
+  const matched = data.filter(d => (d.clearnet||[]).length > 0);
+  const github  = data.filter(d => (d.clearnet||[]).some(p=>p.platform==='GitHub')).length;
+  const reddit  = data.filter(d => (d.clearnet||[]).some(p=>p.platform==='Reddit')).length;
+
+  document.getElementById('identity-stats').innerHTML = `
+    <div style="font-size:10px;line-height:2.2">
+      <div>Total checked: <span style="color:var(--accent)">${data.length}</span></div>
+      <div>Matched: <span style="color:var(--danger)">${matched.length}</span></div>
+      <div>GitHub matches: <span style="color:var(--accent2)">${github}</span></div>
+      <div>Reddit matches: <span style="color:var(--purple)">${reddit}</span></div>
+    </div>`;
+
+  makeChart('chart-identity','doughnut',{
+    labels:['GitHub Only','Reddit Only','Both','No Match'],
+    datasets:[{
+      data:[
+        data.filter(d=>(d.clearnet||[]).some(p=>p.platform==='GitHub')&&!(d.clearnet||[]).some(p=>p.platform==='Reddit')).length,
+        data.filter(d=>(d.clearnet||[]).some(p=>p.platform==='Reddit')&&!(d.clearnet||[]).some(p=>p.platform==='GitHub')).length,
+        data.filter(d=>(d.clearnet||[]).some(p=>p.platform==='GitHub')&&(d.clearnet||[]).some(p=>p.platform==='Reddit')).length,
+        data.length - matched.length,
+      ],
+      backgroundColor:['#39ff14cc','#ff4081cc','#ffd600cc','#0e2035'],
+      borderWidth:1,
+    }]
+  },{plugins:{legend:{display:true,position:'right',labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+
+  document.getElementById('identity-cards').innerHTML = matched.length
+    ? matched.map(c => {
+        const gh = (c.clearnet||[]).find(p=>p.platform==='GitHub') || {};
+        const rd = (c.clearnet||[]).find(p=>p.platform==='Reddit') || {};
+        return `<div class="id-card">
+          <div class="id-username">@${c.username}</div>
+          <div style="font-size:8px;color:var(--text2)">Source: ${c.source||'?'} | Found: ${c.analyzed_at||''}</div>
+          <div class="id-platform">
+            ${gh.found?`<div class="id-plat-card">
+              <div class="id-plat-name">GITHUB</div>
+              ${gh.name?`<div style="color:var(--danger)">Name: ${gh.name}</div>`:''}
+              ${gh.location?`<div>Location: ${gh.location}</div>`:''}
+              ${gh.bio?`<div style="color:var(--text2);max-width:200px">${gh.bio.substring(0,80)}</div>`:''}
+              <div>Repos: ${gh.public_repos||0} | Followers: ${gh.followers||0}</div>
+              <a href="${gh.url||'#'}" target="_blank" style="color:var(--accent);font-size:9px">${gh.url||''}</a>
+            </div>`:''}
+            ${rd.found?`<div class="id-plat-card">
+              <div class="id-plat-name">REDDIT</div>
+              <div>Karma: <span style="color:var(--accent2)">${rd.karma||0}</span></div>
+              <div>Since: ${rd.created||'?'}</div>
+              <a href="${rd.url||'#'}" target="_blank" style="color:var(--accent);font-size:9px">${rd.url||''}</a>
+            </div>`:''}
+          </div>
+        </div>`;
+      }).join('')
+    : '<div class="empty">No identity correlations found yet. Run identity_correlator.py</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 6: TOPICS
+// ═══════════════════════════════════════════════════════
+async function loadTopics() {
+  const [stats, clusters] = await Promise.all([api('/api/stats'), api('/api/clusters')]);
+
+  if (stats && stats.categories) {
+    makeChart('chart-confidence','bar',{
+      labels: stats.categories.map(c=>c._id),
+      datasets:[
+        {label:'Count',data:stats.categories.map(c=>c.count),backgroundColor:stats.categories.map(c=>catColor(c._id)+'99'),borderColor:stats.categories.map(c=>catColor(c._id)),borderWidth:1},
+        {label:'Avg Confidence %',data:stats.categories.map(c=>c.avg_conf||0),backgroundColor:'rgba(0,229,255,.15)',borderColor:'rgba(0,229,255,.6)',borderWidth:1,type:'line',yAxisID:'y1'}
+      ]
+    },{scales:{y:{ticks:{color:'#4a7a9a',font:{family:'Courier New',size:9}},grid:{color:'rgba(14,32,53,.5)'}},y1:{position:'right',ticks:{color:'#00e5ff',font:{family:'Courier New',size:9}},grid:{display:false}}},plugins:{legend:{display:true,labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+  }
+
+  if (clusters) {
+    const cl = clusters.clusters||[];
+    document.getElementById('cluster-list').innerHTML = cl.length
+      ? `<div style="font-size:10px;margin-bottom:8px;color:var(--text2)">
+          Total: ${clusters.total_clusters||0} clusters | Mirrors: ${clusters.mirror_clusters||0}
+        </div>` +
+        cl.slice(0,20).map(c => `
+        <div style="background:var(--surface2);border:var(--card-h);padding:6px 8px;margin-bottom:4px;font-size:10px">
+          <span style="color:var(--accent)">Cluster ${c._id}</span>
+          <span style="color:var(--text2);margin-left:8px">${c.size||0} pages</span>
+          ${c.is_mirror?'<span class="tag ty" style="float:right">MIRROR</span>':''}
+        </div>`).join('')
+      : '<div class="empty">Run classifier.py to compute clusters</div>';
+
+    // Mirror sites list
+    const mirrors = (clusters.clusters||[]).filter(c=>c.is_mirror&&c.size>1);
+    document.getElementById('mirror-list').innerHTML = mirrors.length
+      ? mirrors.slice(0,10).map(m => `
+          <div style="background:var(--surface2);border:var(--card-h);border-left:3px solid var(--warn);padding:10px 12px;margin-bottom:6px">
+            <div style="color:var(--warn);font-size:9px;letter-spacing:2px;margin-bottom:6px">CLUSTER ${m._id} — ${m.size} similar pages</div>
+            ${(m.pages||[]).slice(0,4).map(p=>`
+              <div style="margin-bottom:4px">
+                <span style="color:#e8f4f8;font-size:10px">${(p.title||'No Title').substring(0,50)}</span>
+                <span class="cat-badge cat-${p.category||'other'}" style="margin-left:6px">${p.category||'?'}</span>
+                <div style="color:var(--text2);font-size:9px">${(p.url||'').substring(0,70)}</div>
+              </div>`).join('')}
+          </div>`).join('')
+      : '<div class="empty">No mirror sites detected in current dataset</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 7: D3.js LINK GRAPH
+// ═══════════════════════════════════════════════════════
+async function loadGraph() {
+  const data = await api('/api/graph');
+  if (!data || !data.nodes || data.nodes.length === 0) {
+    document.getElementById('graph-stats').innerHTML =
+      '<div class="empty">Run link_graph.py to generate graph data</div>';
+    return;
+  }
+
+  const svg    = d3.select('#graph-svg');
+  const container = document.getElementById('graph-container');
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+  svg.selectAll('*').remove();
+
+  const g = svg.append('g');
+
+  graphZoom = d3.zoom()
+    .scaleExtent([0.1, 8])
+    .on('zoom', e => g.attr('transform', e.transform));
+  svg.call(graphZoom);
+
+  const nodes = data.nodes.slice(0, 150);
+  const nodeIds = new Set(nodes.map(n => n.id));
+  const links = (data.links||[]).filter(l => nodeIds.has(l.source) && nodeIds.has(l.target)).slice(0, 400);
+
+  graphSim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(80).strength(0.3))
+    .force('charge', d3.forceManyBody().strength(-120))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collide', d3.forceCollide(d => (d.size||8) + 4));
+
+  // Draw links
+  const link = g.append('g').selectAll('line').data(links).enter().append('line')
+    .attr('stroke', 'rgba(14,32,53,.8)')
+    .attr('stroke-width', 1)
+    .attr('stroke-opacity', 0.6);
+
+  // Draw nodes
+  const tooltip = document.getElementById('graph-tooltip');
+  const node = g.append('g').selectAll('circle').data(nodes).enter().append('circle')
+    .attr('r', d => d.size || 6)
+    .attr('fill', d => d.color || '#607d8b')
+    .attr('fill-opacity', 0.85)
+    .attr('stroke', d => d.color || '#607d8b')
+    .attr('stroke-width', 1)
+    .attr('stroke-opacity', 0.5)
+    .call(d3.drag()
+      .on('start', (e,d) => { if(!e.active) graphSim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag', (e,d) => { d.fx=e.x; d.fy=e.y; })
+      .on('end', (e,d) => { if(!e.active) graphSim.alphaTarget(0); d.fx=null; d.fy=null; }))
+    .on('mouseover', (e,d) => {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `
+        <div style="color:var(--accent);margin-bottom:4px">${(d.title||'No Title').substring(0,40)}</div>
+        <div style="color:var(--text2);font-size:9px;word-break:break-all">${(d.id||'').substring(0,55)}</div>
+        <div style="margin-top:4px">${catBadge(d.category)}</div>
+        <div style="color:var(--warn);font-size:9px;margin-top:3px">PageRank: ${(d.pagerank||0).toFixed(6)}</div>
+        <div style="color:var(--text2);font-size:9px">In: ${d.in_degree||0} | Out: ${d.out_degree||0}</div>
+        ${d.opsec_score!=null?`<div style="font-size:9px">OPSEC: ${d.opsec_score}/100</div>`:''}`;
+      tooltip.style.left = (e.offsetX+10)+'px';
+      tooltip.style.top  = (e.offsetY-10)+'px';
+    })
+    .on('mousemove', e => {
+      tooltip.style.left = (e.offsetX+10)+'px';
+      tooltip.style.top  = (e.offsetY-10)+'px';
+    })
+    .on('mouseout', () => { tooltip.style.display='none'; });
+
+  graphSim.on('tick', () => {
+    link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+        .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    node.attr('cx',d=>d.x).attr('cy',d=>d.y);
+  });
+
+  // Legend
+  const legendDiv = document.getElementById('graph-legend');
+  legendDiv.innerHTML = Object.entries(CAT_COLORS).map(([cat,col]) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${col}"></div>${cat}</div>`
+  ).join('');
+
+  // Stats
+  const meta = data.metadata || {};
+  document.getElementById('graph-stats').innerHTML = `
+    <div style="font-size:10px;line-height:2.2">
+      <div>Total nodes: <span style="color:var(--accent)">${meta.total_nodes||0}</span></div>
+      <div>Total edges: <span style="color:var(--accent)">${meta.total_edges||0}</span></div>
+      <div>Displayed: <span style="color:var(--accent2)">${nodes.length}</span> nodes / ${links.length} edges</div>
+      <div>PageRank α: <span style="color:var(--warn)">${meta.pagerank_alpha||0.85}</span></div>
+      <div>Computed: <span style="color:var(--text2);font-size:9px">${meta.computed_at||'N/A'}</span></div>
+    </div>`;
+
+  // Top PR table
+  const top = (meta.top_sites||[]).slice(0,10);
+  document.getElementById('pr-table').innerHTML = top.length
+    ? `<table><thead><tr><th>RANK</th><th>TITLE</th><th>CAT</th><th>PAGERANK</th><th>IN-LINKS</th></tr></thead><tbody>
+        ${top.map(s=>`<tr>
+          <td style="color:var(--warn)">#${s.rank}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.title||'?'}</td>
+          <td>${catBadge(s.category)}</td>
+          <td style="color:var(--accent)">${(s.pagerank||0).toFixed(6)}</td>
+          <td style="color:var(--text2)">${s.in_links||0}</td>
+        </tr>`).join('')}
+      </tbody></table>`
+    : '<div class="empty">No PageRank data</div>';
+}
+
+function graphZoomIn()  { if(graphZoom) d3.select('#graph-svg').transition().call(graphZoom.scaleBy,1.4); }
+function graphZoomOut() { if(graphZoom) d3.select('#graph-svg').transition().call(graphZoom.scaleBy,0.7); }
+function graphReset()   { if(graphZoom) d3.select('#graph-svg').transition().call(graphZoom.transform, d3.zoomIdentity); }
+
+// ═══════════════════════════════════════════════════════
+// TAB 8: GALLERY
+// ═══════════════════════════════════════════════════════
+async function loadGallery() {
+  const data = await api('/api/screenshots');
+  const grid = document.getElementById('gallery-grid');
+  const empty = document.getElementById('gallery-empty');
+
+  if (!data || data.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  const cats = [...new Set(data.map(p=>p.category||'other'))];
+  let filter = 'all';
+
+  document.getElementById('gallery-filters').innerHTML =
+    ['all',...cats].map(c =>
+      `<button class="hbtn ${c===filter?'active':''}" onclick="filterGallery('${c}',this)">${c.toUpperCase()}</button>`
+    ).join('');
+
+  function render(cat) {
+    const items = cat === 'all' ? data : data.filter(p=>(p.category||'other')===cat);
+    grid.innerHTML = items.map(p => `
+      <div class="gcard ${p.flagged?'flagged':''}" onclick="openLightbox('${p.filename}','${(p.title||'').replace(/'/g,"\\'")}')">
+        <img class="gimg" src="/screenshots/${p.filename}" alt="${p.title||''}" loading="lazy"
+          onerror="this.style.display='none'">
+        <div class="ginfo">
+          <div class="gtitle">${p.title||'No Title'}</div>
+          <div class="gurl">${(p.url||'').substring(0,45)}</div>
+          <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">
+            ${catBadge(p.category)}
+            ${p.flagged?'<span class="tag tr">THREAT</span>':''}
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  window.filterGallery = (cat, btn) => {
+    document.querySelectorAll('#gallery-filters .hbtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    render(cat);
+  };
+
+  render(filter);
+}
+
+function openLightbox(filename, title) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lb-img').src = '/screenshots/' + filename;
+  document.getElementById('lb-title').textContent = title;
+  lb.classList.add('show');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 9: FORUMS
+// ═══════════════════════════════════════════════════════
+async function loadForums() {
+  const [posts, fstats] = await Promise.all([api('/api/forums'), api('/api/forum_stats')]);
+  if (!fstats) return;
+
+  // Board chart
+  const boards = fstats.boards || [];
+  makeChart('chart-forum-boards','doughnut',{
+    labels: boards.map(b=>`${b._id.forum}/${b._id.board}`),
+    datasets:[{
+      data: boards.map(b=>b.count),
+      backgroundColor: ['#00e5ffcc','#39ff14cc','#ffd600cc','#ff6d00cc','#d500f9cc','#ff4081cc','#2979ffcc'],
+      borderWidth:1,
+    }]
+  },{plugins:{legend:{display:true,position:'right',labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+
+  document.getElementById('forum-user-stats').innerHTML = `
+    <div style="font-size:10px;line-height:2.2">
+      <div>Total posts: <span style="color:var(--accent)">${fstats.total||0}</span></div>
+      <div>Named users: <span style="color:var(--accent2)">${fstats.named_users||0}</span></div>
+      <div>Anonymous: <span style="color:var(--text2)">${fstats.anonymous||0}</span></div>
+      <div>Boards: <span style="color:var(--purple)">${boards.length}</span></div>
+    </div>`;
+
+  // Board filter buttons
+  const boardNames = [...new Set(boards.map(b=>b._id.board))];
+  document.getElementById('board-filters').innerHTML =
+    ['all',...boardNames].map(b =>
+      `<button class="hbtn ${currentForumBoard===b||(!currentForumBoard&&b==='all')?'active':''}"
+        onclick="loadForumBoard('${b}',this)">${b.toUpperCase()}</button>`
+    ).join('');
+
+  renderForumPosts(posts||[]);
+}
+
+function renderForumPosts(posts) {
+  document.getElementById('forum-count').textContent = `(${posts.length} posts)`;
+  document.getElementById('forum-posts').innerHTML = posts.length
+    ? posts.map(p => `
+      <div class="fp">
+        <div class="fp-meta">
+          <span class="fp-board">${(p.board||'?').toUpperCase()}</span>
+          <span class="fp-user">@${p.username||'Anonymous'}</span>
+          <span class="fp-time">${p.crawled_at||''}</span>
+        </div>
+        <div class="fp-subj">${p.subject||'No Subject'}</div>
+        <div class="fp-body">${p.content||''}</div>
+      </div>`).join('')
+    : '<div class="empty">No forum posts. Run forum_crawler.py to crawl Endchan.</div>';
+}
+
+async function loadForumBoard(board, btn) {
+  document.querySelectorAll('#board-filters .hbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  currentForumBoard = board === 'all' ? null : board;
+  const endpoint = currentForumBoard ? `/api/forums?board=${currentForumBoard}` : '/api/forums';
+  const posts = await api(endpoint);
+  renderForumPosts(posts||[]);
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 10: ENTITIES
+// ═══════════════════════════════════════════════════════
+async function loadEntities() {
+  const data = await api('/api/entities');
+  if (!data) return;
+
+  const allEmails = data.flatMap(p=>p.emails||[]);
+  const allBTC    = data.flatMap(p=>p.bitcoin||[]);
+  const allMonero = data.flatMap(p=>p.monero||[]);
+  const withPGP   = data.filter(p=>p.pgp_keys).length;
+  const btcRisks  = data.flatMap(p=>(p.btc_risk||[]));
+
+  document.getElementById('email-stats').innerHTML = `
+    <div style="font-size:10px;line-height:2">
+      <div>Total emails: <span style="color:var(--accent)">${allEmails.length}</span></div>
+      <div>From pages: <span style="color:var(--accent2)">${data.filter(p=>(p.emails||[]).length).length}</span></div>
+    </div>
+    <div style="margin-top:8px;max-height:120px;overflow-y:auto">
+      ${allEmails.slice(0,10).map(e=>`<div style="color:var(--text2);font-size:9px;margin-bottom:2px">📧 ${e}</div>`).join('')}
+    </div>`;
+
+  const riskColors = {CRITICAL:'#ff1744',HIGH:'#ff6d00',MEDIUM:'#ffd600',LOW:'#39ff14',UNUSED:'#4a7a9a',UNKNOWN:'#4a7a9a'};
+  document.getElementById('btc-stats').innerHTML = `
+    <div style="font-size:10px;line-height:2">
+      <div>BTC addresses: <span style="color:var(--accent)">${allBTC.length}</span></div>
+      <div>Monero: <span style="color:var(--orange)">${allMonero.length}</span></div>
+      <div>With PGP: <span style="color:var(--purple)">${withPGP}</span></div>
+      <div>Scored: <span style="color:var(--warn)">${btcRisks.filter(r=>r.api_success).length}</span></div>
+    </div>
+    <div style="margin-top:8px;max-height:120px;overflow-y:auto">
+      ${btcRisks.filter(r=>r.api_success).slice(0,8).map(r=>`
+        <div style="margin-bottom:4px;font-size:9px">
+          <span style="color:${riskColors[r.risk_level]||'#4a7a9a'}">[${r.risk_level}]</span>
+          <span style="color:var(--text2)">${(r.address||'').substring(0,20)}... (${r.tx_count} txns)</span>
+        </div>`).join('')}
+    </div>`;
+
+  makeChart('chart-entities','doughnut',{
+    labels:['With Emails','With BTC','With Monero','With PGP','With Orgs','With Persons'],
+    datasets:[{
+      data:[
+        data.filter(p=>(p.emails||[]).length).length,
+        data.filter(p=>(p.bitcoin||[]).length).length,
+        data.filter(p=>(p.monero||[]).length).length,
+        data.filter(p=>p.pgp_keys).length,
+        data.filter(p=>(p.orgs||[]).length).length,
+        data.filter(p=>(p.persons||[]).length).length,
+      ],
+      backgroundColor:['#00e5ffcc','#ffd600cc','#ff6d00cc','#d500f9cc','#39ff14cc','#ff4081cc'],
+      borderWidth:1,
+    }]
+  },{plugins:{legend:{display:true,position:'right',labels:{color:'#4a7a9a',font:{family:'Courier New',size:8},boxWidth:10}}}});
+
+  document.getElementById('entities-tbody').innerHTML = data.map(p => `
+    <tr>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title||'No Title'}</td>
+      <td><span class="tag tc">${p.language||'?'}</span></td>
+      <td style="color:var(--accent)">${(p.emails||[]).slice(0,2).join(', ')||'—'}</td>
+      <td style="color:var(--warn);font-size:9px">${(p.bitcoin||[]).slice(0,1).map(b=>b.substring(0,16)+'...').join('')||'—'}</td>
+      <td>${(p.btc_risk||[]).filter(r=>r.api_success).slice(0,1).map(r=>`<span style="color:${riskColors[r.risk_level]}">${r.risk_level}(${r.tx_count})</span>`).join('')||'—'}</td>
+      <td style="color:var(--orange)">${(p.monero||[]).length||'—'}</td>
+      <td>${p.pgp_keys?'<span class="tag tp">🔑 YES</span>':'—'}</td>
+      <td style="color:var(--text2);font-size:9px">${(p.orgs||[]).slice(0,2).join(', ')||'—'}</td>
+      <td style="color:var(--text2);font-size:9px">${(p.persons||[]).slice(0,2).join(', ')||'—'}</td>
+    </tr>`).join('') || '<tr><td colspan="9" class="empty">Run nlp_pipeline.py first</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB 11: SEARCH
+// ═══════════════════════════════════════════════════════
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  document.getElementById('search-results').innerHTML = '<div class="loading">SEARCHING...</div>';
+  const data = await api(`/api/search?q=${encodeURIComponent(q)}`);
+  document.getElementById('search-count').textContent = `(${(data||[]).length} results for "${q}")`;
+  document.getElementById('search-results').innerHTML = (data||[]).length
+    ? data.map(r => `
+      <div style="background:var(--surface2);border:var(--card-h);border-left:3px solid var(--accent);padding:10px 12px;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="color:#e8f4f8;font-size:11px;font-weight:bold">${r.title||'No Title'}</span>
+          ${catBadge(r.category)}
+          ${r.is_flagged?'<span class="tag tr">THREAT</span>':'<span class="tag tg">CLEAN</span>'}
+        </div>
+        <div class="url-cell"><a href="${r.url}" target="_blank">${r.url||''}</a></div>
+        <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px">
+          ${(r.keywords_found||[]).slice(0,6).map(k=>`<span class="tag tc">${k}</span>`).join('')}
+        </div>
+        <div style="color:var(--text2);font-size:8px;margin-top:4px">${r.crawled_at||''}</div>
+      </div>`).join('')
+    : '<div class="empty">No results found</div>';
+
+  // Load quick stats
+  const stats = await api('/api/stats');
+  if (stats) {
+    document.getElementById('quick-stats').innerHTML = `
+      <div style="font-size:10px;line-height:2">
+        <div>Total pages: <span style="color:var(--accent)">${stats.total}</span></div>
+        <div>Threats: <span style="color:var(--danger)">${stats.flagged}</span></div>
+        <div>Entities: <span style="color:var(--warn)">${stats.with_entities}</span></div>
+        <div>BTC addresses: <span style="color:var(--warn)">found in ${stats.with_entities} pages</span></div>
+      </div>`;
+  }
+}
+
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+// ═══════════════════════════════════════════════════════
+// STIX EXPORT
+// ═══════════════════════════════════════════════════════
+function exportSTIX(type) {
+  let url = '/api/export/stix';
+  if (type === 'flagged') url += '?flagged=true';
+  else if (type !== 'all') url += `?category=${type}`;
+  window.open(url, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTO REFRESH
+// ═══════════════════════════════════════════════════════
+async function runAllRefresh() {
+  await loadOverview();
+}
+
+// Init
+loadOverview();
+// Auto refresh every 30 seconds
+setInterval(async () => {
+  // Only refresh overview stats (non-disruptive)
+  const data = await api('/api/stats');
+  if (data) {
+    document.getElementById('s-total').textContent    = data.total || 0;
+    document.getElementById('s-flagged').textContent  = data.flagged || 0;
+    document.getElementById('s-forums').textContent   = data.forum_posts || 0;
+    document.getElementById('s-entities').textContent = data.with_entities || 0;
+    document.getElementById('s-clusters').textContent = data.clusters || 0;
+    document.getElementById('s-uptime').textContent   = data.uptime_checked || 0;
+  }
+}, 30000);
+</script>
+</body>
+</html>

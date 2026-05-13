@@ -1,0 +1,74 @@
+# ============================================================
+# Dark Web Intelligence Platform — Requirements
+# Python 3.13 | Windows — FIXED VERSION
+# Install: pip install -r requirements.txt --prefer-binary
+#
+# IMPORTANT: Always use --prefer-binary flag to avoid
+# building from source (which requires MSVC compiler)
+# ============================================================
+
+# ── Web & Networking ─────────────────────────────────────────
+requests==2.32.3
+PySocks==1.7.1
+beautifulsoup4==4.12.3
+lxml==5.3.0
+urllib3==2.2.3
+
+# ── Flask Dashboard ──────────────────────────────────────────
+flask==3.1.0
+flask-cors==5.0.0
+
+# ── MongoDB ──────────────────────────────────────────────────
+pymongo==4.10.1
+
+# ── NLP & Text Processing ────────────────────────────────────
+# spaCy 3.8.x has pre-built wheels for Python 3.13 on Windows
+spacy==3.8.4
+langdetect==1.0.9
+
+# ── Machine Learning ─────────────────────────────────────────
+scikit-learn==1.6.1
+numpy==2.2.4
+scipy==1.15.2
+joblib==1.4.2
+
+# ── Network Graph & PageRank ─────────────────────────────────
+networkx==3.4.2
+
+# ── Screenshot Engine ────────────────────────────────────────
+selenium==4.27.1
+
+# ── STIX 2.1 Threat Intelligence Export ──────────────────────
+stix2==3.0.1
+
+# ── PGP Key Extraction ───────────────────────────────────────
+pgpy==0.6.0
+
+# ── Utilities ────────────────────────────────────────────────
+python-dateutil==2.9.0.post0
+pytz==2024.2
+tqdm==4.67.1
+colorama==0.4.6
+python-dotenv==1.0.1
+
+# ── PDF Report Generation ────────────────────────────────────
+reportlab==4.2.5
+
+# ============================================================
+# INSTALL COMMAND (use this exact command):
+#
+#   pip install -r requirements.txt --prefer-binary
+#
+# The --prefer-binary flag forces pip to download pre-built
+# wheels instead of compiling from source. This avoids the
+# MSVC compiler error you saw with spaCy and numpy.
+#
+# AFTER INSTALL — run this one command:
+#   python -m spacy download en_core_web_sm
+#
+# VERIFY INSTALL:
+#   python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print('spaCy OK')"
+#   python -c "import sklearn; print('sklearn OK')"
+#   python -c "import stix2; print('stix2 OK')"
+#   python -c "import networkx; print('networkx OK')"
+# ============================================================
